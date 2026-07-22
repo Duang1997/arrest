@@ -172,7 +172,7 @@ else:
 
             # ข้อมูลญาติ
             rel_name = st.text_input("ชื่อญาติที่ประสงค์แจ้ง", placeholder="ถ้าไม่มีให้ปล่อยว่างไว้", key=f"rel_{s['index']}")
-            relative_name_final = rel_name if rel_name.strip() else "......................................."
+            relative_name_final = rel_name if rel_name.strip() else "............................................................................"
             
             # ข้อมูลการให้ถ้อยคำ
             confession = st.radio("การให้ถ้อยคำในชั้นจับกุม", ["รับสารภาพตลอดข้อกล่าวหา", "ปฏิเสธตลอดข้อกล่าวหา"], key=f"conf_{s['index']}")
