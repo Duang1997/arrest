@@ -182,7 +182,7 @@ else:
             s['display_index'] = f"{s['index']}. " if is_multi else ""
             s['charge_text'] = f"ผู้ต้องหาที่ {s['index']} ซึ่งต้องหาว่ากระทำความผิดฐาน {s['charge']}" if is_multi else f"ซึ่งต้องหาว่ากระทำความผิดฐาน {s['charge']}"
             s['relative_text'] = f"ผู้ต้องหาที่ {s['index']} {s['name']} แจ้งให้: {relative_name_final}" if is_multi else f" : {relative_name_final}"
-            s['statement_prefix'] = f"ผู้ต้องหาที่ {s['index']} ({s['name']}):" if is_multi else ""
+            s['statement_prefix'] = f"ผู้ต้องหาที่ {s['index']} {s['name']} :" if is_multi else ""
             s['confession'] = confession
             s['additional_statement'] = additional_statement
 
