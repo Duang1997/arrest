@@ -139,7 +139,7 @@ with tab_arrest:
             if name and name.lower() != "nan":
                 final_suspects.append({"index": len(final_suspects) + 1, "name": name, "age": str(row.get("อายุ", "-")).replace(".0", ""), "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", ""), "address": str(row.get("ที่อยู่", "-")), "charge": str(row.get("ฐานความผิด", "-"))})
     else:
-        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `ชื่อ-นามสกุล` | `อายุ` | `เลขประจำตัวประชาชน` | `ที่อยู่` | `ฐานความผิด`")
+        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `ชื่อ-นามสกุล` | `อายุ` | `เลขประจำตัวประชาชน` (หรือ `เลขบัตรประจำตัวประชาชน`) | `ที่อยู่` | `ฐานความผิด`")
         uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของผู้ต้องหา", type=["xlsx"])
         if uploaded_file:
             df = pd.read_excel(uploaded_file, dtype=str)
@@ -148,11 +148,12 @@ with tab_arrest:
             for idx, row in df.iterrows():
                 name = str(row.get("ชื่อ-นามสกุล", "")).strip()
                 if name and name.lower() != "nan" and name.lower() != "none":
+                    id_raw = row.get("เลขบัตรประจำตัวประชาชน", row.get("เลขประจำตัวประชาชน", "-"))
                     final_suspects.append({
                         "index": len(final_suspects) + 1, 
                         "name": name, 
                         "age": str(row.get("อายุ", "-")).replace(".0", "").strip(), 
-                        "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", "").strip(), 
+                        "id_card": str(id_raw).replace(".0", "").strip(), 
                         "address": str(row.get("ที่อยู่", "-")).strip(), 
                         "charge": str(row.get("ฐานความผิด", "-")).strip()
                     })
