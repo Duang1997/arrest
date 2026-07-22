@@ -8,10 +8,9 @@ import datetime
 # --- ตั้งค่าหน้าเพจ ---
 st.set_page_config(page_title="ระบบบันทึกจับกุม & ม.22 (CIB)", layout="wide") 
 
-# --- ตกแต่ง UI ให้เป็นธีม CIB (น้ำเงิน-ทอง) ตามภาพอ้างอิง ---
+# --- ตกแต่ง UI ธีม CIB ---
 st.markdown("""
 <style>
-    /* แถบด้านบนจำลอง CIB */
     .cib-header {
         background-color: #00204a;
         padding: 15px;
@@ -25,7 +24,6 @@ st.markdown("""
     .cib-header h1 { color: #f9bc0f; margin: 0; font-size: 28px; font-weight: bold; }
     .cib-header p { color: #ffffff; margin: 0; font-size: 16px; }
     
-    /* ปรับแต่ง Tabs ให้เหมือน Top Navigation */
     .stTabs [data-baseweb="tab-list"] {
         gap: 20px;
         background-color: #00204a;
@@ -48,7 +46,7 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- ฟังก์ชันแปลงวันที่ ---
+# --- ฟังก์ชันจัดการวันที่ ---
 THAI_MONTHS = ["", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
 
 def format_thai_date(date_obj):
@@ -61,9 +59,7 @@ def combine_date_time_text(date_obj, time_str):
         return f"{date_text} เวลาประมาณ {time_str} น."
     return date_text
 
-# ==========================================
-# ส่วนจัดการ State (เพื่อให้ข้อมูลเชื่อมโยงกัน)
-# ==========================================
+# --- จัดการ Session State ---
 if 'shared_data' not in st.session_state:
     st.session_state.shared_data = {}
 if 'unit_count' not in st.session_state:
@@ -72,9 +68,7 @@ if 'unit_count' not in st.session_state:
 def add_unit():
     st.session_state.unit_count += 1
 
-# ==========================================
-# สร้างระบบ Tabs (แทนที่ Sidebar)
-# ==========================================
+# --- โครงสร้างระบบ Tabs ---
 tab_arrest, tab_m22 = st.tabs(["📝 ฟังก์ชันบันทึกจับกุม", "⚖️ ฟังก์ชันแบบแจ้ง ม.22"])
 
 # ==========================================
@@ -88,11 +82,11 @@ with tab_arrest:
     with col1:
         st.markdown("**ข้อมูลการบันทึก**")
         record_date = st.date_input("วันที่บันทึก", key="rec_d")
-        record_time = st.text_input("เวลาที่บันทึก (เช่น 19:30)", value=datetime.datetime.now().strftime('%H:%M'), key="rec_t")
+        record_time = st.text_input("เวลาที่บันทึก", value=datetime.datetime.now().strftime('%H:%M'), key="rec_t")
     with col2:
         st.markdown("**ข้อมูลการจับกุม**")
         arrest_date = st.date_input("วันที่จับกุม", key="arr_d")
-        arrest_time = st.text_input("เวลาที่จับกุม (เช่น 18:30)", value=datetime.datetime.now().strftime('%H:%M'), key="arr_t")
+        arrest_time = st.text_input("เวลาที่จับกุม", value=datetime.datetime.now().strftime('%H:%M'), key="arr_t")
     
     arrest_location = st.text_area("สถานที่จับกุม", height=100, key="arr_loc")
 
@@ -100,7 +94,6 @@ with tab_arrest:
     arrest_datetime_th = combine_date_time_text(arrest_date, arrest_time)
     st.divider()
 
-    # หน่วยจับกุม
     st.header("ส่วนที่ 2: รายละเอียดเกี่ยวกับหน่วยการจับกุม")
     units_data = []
     all_officer_names = []
@@ -109,7 +102,7 @@ with tab_arrest:
     for i in range(st.session_state.unit_count):
         with st.container(border=True):
             st.subheader(f"🏢 หน่วยจับกุมที่ {i+1}")
-            unit_name = st.text_input(f"ชื่อหน่วยงานที่ {i+1}", value="กก.๓ บก.ป." if i==0 else "", key=f"unit_name_{i}")
+            unit_name = st.text_input(f"ชื่อหน่วยงาน", value="กก.๓ บก.ป." if i==0 else "", key=f"unit_name_{i}")
             commanders_text = st.text_area(f"ภายใต้อำนวยการสั่งการของ", value=default_cmd if i==0 else "", key=f"cmd_{i}")
             
             st.markdown("**รายชื่อเจ้าหน้าที่ผู้จับกุม:**")
@@ -145,17 +138,16 @@ with tab_arrest:
     st.button("➕ เพิ่มหน่วยจับกุมอื่น", on_click=add_unit)
     st.divider()
 
-    # ข้อมูลผู้ต้องหา
     st.header("ส่วนที่ 3: ข้อมูลผู้ถูกจับกุม")
     arrest_type = st.radio("ประเภทการจับกุม", ["จับสด", "จับตามหมายจับ"], horizontal=True)
     warrant_text = ""
     if arrest_type == "จับตามหมายจับ":
-        warrant_df = pd.DataFrame([{"ศาลที่ออกหมาย": "", "เลขที่หมาย": "", "ลงวันที่ (เช่น 9 ก.พ. 69)": ""}])
+        warrant_df = pd.DataFrame([{"ศาลที่ออกหมาย": "", "เลขที่หมาย": "", "ลงวันที่": ""}])
         edited_warrants = st.data_editor(warrant_df, num_rows="dynamic", use_container_width=True)
         w_list = []
         for _, w in edited_warrants.iterrows():
             if w["ศาลที่ออกหมาย"]:
-                w_list.append(f"ผู้ต้องหาตามหมายจับศาล{w['ศาลที่ออกหมาย']} ที่ {w['เลขที่หมาย']} ลงวันที่ {w['ลงวันที่ (เช่น 9 ก.พ. 69)']}")
+                w_list.append(f"ผู้ต้องหาตามหมายจับศาล{w['ศาลที่ออกหมาย']} ที่ {w['เลขที่หมาย']} ลงวันที่ {w['ลงวันที่']}")
         if w_list:
             warrant_text = " ".join(w_list) + "\n"
 
@@ -167,7 +159,7 @@ with tab_arrest:
         edited_suspects = st.data_editor(suspect_df, num_rows="dynamic", use_container_width=True)
         for idx, row in edited_suspects.iterrows():
             name = str(row.get("ชื่อ-นามสกุล", "")).strip()
-            if name != "" and name.lower() != "nan":
+            if name and name.lower() != "nan":
                 final_suspects.append({
                     "index": len(final_suspects) + 1,
                     "name": name,
@@ -184,7 +176,7 @@ with tab_arrest:
             st.dataframe(df, use_container_width=True)
             for idx, row in df.iterrows():
                 name = str(row.get("ชื่อ-นามสกุล", "")).strip()
-                if name != "" and name.lower() != "nan":
+                if name and name.lower() != "nan":
                     final_suspects.append({
                         "index": len(final_suspects) + 1,
                         "name": name,
@@ -197,9 +189,8 @@ with tab_arrest:
     arrest_circumstances = st.text_area("พฤติการณ์และรายละเอียดเกี่ยวกับเหตุแห่งการจับ", height=150)
     st.divider()
 
-    # สิทธิและการแจ้งญาติ
     st.header("ส่วนที่ 4: สิทธิ และการแจ้งญาติ")
-    if len(final_suspects) == 0:
+    if not final_suspects:
         st.warning("⚠️ กรุณากรอกข้อมูลผู้ต้องหาก่อน")
     else:
         is_multi = len(final_suspects) > 1
@@ -219,7 +210,7 @@ with tab_arrest:
                 s['confession'] = confession
                 s['additional_statement'] = additional_statement
 
-    # --- อัปเดตข้อมูลส่วนกลางตลอดเวลา (Real-time update) ---
+    # --- อัปเดตข้อมูลส่วนกลาง (Real-time update) ---
     st.session_state.shared_data = {
         "arrest_location": arrest_location,
         "arrest_date_text": format_thai_date(arrest_date),
@@ -230,7 +221,6 @@ with tab_arrest:
     }
 
     st.divider()
-    # ปุ่มสร้างบันทึกจับกุม
     if st.button("💾 สร้างและดาวน์โหลด บันทึกจับกุม", type="primary", use_container_width=True):
         try:
             charge_list = [f"ผู้ต้องหาที่ {s['index']} ซึ่งต้องหาว่ากระทำความผิดฐาน {s['charge']}" for s in final_suspects]
@@ -264,20 +254,19 @@ with tab_arrest:
                 use_container_width=True
             )
         except Exception as e:
-            st.error(f"เกิดข้อผิดพลาด: โปรดตรวจสอบตัวแปรในไฟล์ template_arrest.docx ({e})")
+            st.error(f"เกิดข้อผิดพลาด: โปรดตรวจสอบไฟล์ template_arrest.docx ({e})")
 
 # ==========================================
-# โหมดที่ 2: ฟังก์ชันแบบแจ้ง ม.22 (ดึงข้อมูลเรียลไทม์)
+# โหมดที่ 2: ฟังก์ชันแบบแจ้ง ม.22 
 # ==========================================
 with tab_m22:
     st.header("ส่วนที่ 1: ข้อมูลสถานที่ควบคุมตัว และเจ้าหน้าที่ผู้รับผิดชอบ")
     
-    # ดึงข้อมูลจาก Session State ที่อัปเดตล่าสุด
     shared = st.session_state.shared_data
     suspects_from_arrest = shared.get("suspects", [])
 
-    if len(suspects_from_arrest) == 0:
-        st.warning("⚠️ ไม่พบข้อมูลผู้ต้องหา กรุณากรอกตารางผู้ต้องหาในแท็บ 'บันทึกจับกุม' ให้เรียบร้อยก่อน")
+    if not suspects_from_arrest:
+        st.warning("⚠️ ไม่พบข้อมูลผู้ต้องหา กรุณากรอกตารางผู้ต้องหาในแท็บ 'บันทึกจับกุม' ก่อนดำเนินการต่อ")
 
     detention_location = st.text_area("สถานที่ควบคุมตัวไว้", value="กองกำกับการ 3 กองบังคับการปราบปราม")
 
@@ -306,25 +295,16 @@ with tab_m22:
             s['img_right'] = c3.file_uploader("หันขวา", type=['png', 'jpg', 'jpeg'], key=f"m22_r_{s['index']}")
             s['img_back']  = c4.file_uploader("หันหลัง", type=['png', 'jpg', 'jpeg'], key=f"m22_b_{s['index']}")
 
-            if st.button(f"📄 สร้างและโหลด แบบแจ้ง ม.22 ของ {s['name']}", key=f"btn_m22_{s['index']}", type="primary"):
+            if st.button(f"📄 สร้างเอกสาร ม.22 และ แนบท้าย ของ {s['name']}", key=f"btn_m22_{s['index']}", type="primary"):
                 try:
+                    # 1. เอกสารแบบฟอร์ม ม.22 (ไม่มีรูปภาพ)
                     doc_m22 = DocxTemplate("template_section22.docx")
-                    
-                    pic_f = InlineImage(doc_m22, s['img_front'], width=Mm(35)) if s['img_front'] else ""
-                    pic_l = InlineImage(doc_m22, s['img_left'], width=Mm(35)) if s['img_left'] else ""
-                    pic_r = InlineImage(doc_m22, s['img_right'], width=Mm(35)) if s['img_right'] else ""
-                    pic_b = InlineImage(doc_m22, s['img_back'], width=Mm(35)) if s['img_back'] else ""
-
                     context_m22 = {
                         "arrest_date_text": shared.get("arrest_date_text", ""),
                         "arrest_time": shared.get("arrest_time", ""),
                         "arrest_location": shared.get("arrest_location", ""),
                         "arrest_circumstances": shared.get("arrest_circumstances", ""),
                         "suspect": s,
-                        "pic_front": pic_f,
-                        "pic_left": pic_l,
-                        "pic_right": pic_r,
-                        "pic_back": pic_b,
                         "detention_location": detention_location,
                         "officer_m22_name": officer_m22_name,
                         "officer_m22_phone": officer_m22_phone,
@@ -332,19 +312,51 @@ with tab_m22:
                         "notif_phone": notif_phone,
                         "force_majeure": force_majeure
                     }
-
                     doc_m22.render(context_m22)
                     bio_m22 = BytesIO()
                     doc_m22.save(bio_m22)
                     bio_m22.seek(0)
                     
-                    st.success(f"✅ สร้างแบบแจ้ง ม.22 ของ {s['name']} สำเร็จ!")
-                    st.download_button(
-                        label=f"⬇️ คลิกลงเครื่อง: แบบแจ้ง_ม22_{s['name']}.docx",
-                        data=bio_m22.getvalue(),
-                        file_name=f"แบบแจ้ง_ม22_{s['name']}_{datetime.datetime.now().strftime('%Y%m%d')}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        key=f"dl_file_m22_{s['index']}"
-                    )
+                    # 2. เอกสารแนบท้าย (มีรูปภาพ 4 มุม ขนาด 75mm)
+                    doc_att = DocxTemplate("template_attachment.docx")
+                    pic_f = InlineImage(doc_att, s['img_front'], width=Mm(75)) if s['img_front'] else ""
+                    pic_l = InlineImage(doc_att, s['img_left'], width=Mm(75)) if s['img_left'] else ""
+                    pic_r = InlineImage(doc_att, s['img_right'], width=Mm(75)) if s['img_right'] else ""
+                    pic_b = InlineImage(doc_att, s['img_back'], width=Mm(75)) if s['img_back'] else ""
+
+                    context_att = {
+                        "suspect": s,
+                        "officer_m22_name": officer_m22_name,
+                        "pic_front": pic_f,
+                        "pic_left": pic_l,
+                        "pic_right": pic_r,
+                        "pic_back": pic_b
+                    }
+                    doc_att.render(context_att)
+                    bio_att = BytesIO()
+                    doc_att.save(bio_att)
+                    bio_att.seek(0)
+                    
+                    st.success(f"✅ สร้างเอกสารของ {s['name']} สำเร็จ!")
+                    
+                    col_dl1, col_dl2 = st.columns(2)
+                    with col_dl1:
+                        st.download_button(
+                            label="⬇️ โหลดเอกสาร ม.22",
+                            data=bio_m22.getvalue(),
+                            file_name=f"แบบแจ้ง_ม22_{s['name']}_{datetime.datetime.now().strftime('%Y%m%d')}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"dl_m22_{s['index']}",
+                            use_container_width=True
+                        )
+                    with col_dl2:
+                        st.download_button(
+                            label="⬇️ โหลดภาพถ่ายแนบท้าย",
+                            data=bio_att.getvalue(),
+                            file_name=f"ภาพแนบท้าย_{s['name']}_{datetime.datetime.now().strftime('%Y%m%d')}.docx",
+                            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                            key=f"dl_att_{s['index']}",
+                            use_container_width=True
+                        )
                 except Exception as e:
-                    st.error(f"เกิดข้อผิดพลาด: โปรดตรวจสอบการอ้างอิงตัวแปรในไฟล์ template_section22.docx ({e})")
+                    st.error(f"เกิดข้อผิดพลาดในการสร้างเอกสาร: {e}")
