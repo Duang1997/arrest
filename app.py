@@ -80,16 +80,20 @@ with tab_arrest:
     units_data = []
     officers_data = [] 
     officer_displays = [] 
+    
+    # กำหนดค่าเริ่มต้นตามที่ท่านต้องการ
+    default_cmd = "พล.ต.ต.ณัฐศักดิ์ เชาวนาศัย ผบช.ก., พ.ต.ต.พัฒนศักดิ์ บุบผาสุวรรณ ผบก.ป., พ.ต.อ.สุเทพ โตอิ้ม รอง ผบก.ป., พ.ต.อ.สุริยศักดิ์ จิราวัสน์ ผกก.3 บก.ป., พ.ต.ท.พงษ์พิทักษ์ เหล็กชูชาติ, พ.ต.ท.รัฐมนตรี พันชูกลาง, พ.ต.ท.ณัฐดนัย สีแข่ไตร, พ.ต.ท.ศิษฏ์ พูลวงศ์, พ.ต.ท.พัฒษพงศ์ เสณีแสนเสนา รอง ผกก.3 บก.ป."
+    default_officer_row = {"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "พงษ์พิทักษ์ เหล็กชูชาติ", "ตำแหน่ง": "สว.กก.๓ บก.ป."}
 
     for i in range(st.session_state.unit_count):
         with st.container(border=True):
             st.subheader(f"🏢 หน่วยจับกุมที่ {i+1}")
-            unit_name = st.text_input(f"ชื่อหน่วยงาน", value="", placeholder="เช่น กก.๓ บก.ป.", key=f"unit_name_{i}")
-            commanders_text = st.text_area(f"ภายใต้อำนวยการสั่งการของ", value="", placeholder="เช่น พล.ต.ท.ณัฐศักดิ์ เชาวนาศัย ผบช.ก., ...", key=f"cmd_{i}")
+            unit_name = st.text_input(f"ชื่อหน่วยงาน", value="กก.๓ บก.ป." if i==0 else "", placeholder="เช่น กก.๓ บก.ป.", key=f"unit_name_{i}")
+            commanders_text = st.text_area(f"ภายใต้อำนวยการสั่งการของ", value=default_cmd if i==0 else "", placeholder="ระบุรายนามผู้สั่งการ...", key=f"cmd_{i}")
             
             df_key = f"officer_df_{i}"
             if df_key not in st.session_state:
-                st.session_state[df_key] = pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
+                st.session_state[df_key] = pd.DataFrame([default_officer_row]) if i==0 else pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
             
             edited_officers = st.data_editor(st.session_state[df_key], num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
             
