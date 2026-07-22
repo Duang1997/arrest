@@ -142,12 +142,22 @@ with tab_arrest:
     else:
         uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx)", type=["xlsx"])
         if uploaded_file:
-            df = pd.read_excel(uploaded_file)
+            # บังคับอ่านข้อมูลเป็น Text (str) เพื่อป้องกัน 0 นำหน้าเลขบัตรประชาชนหาย
+            df = pd.read_excel(uploaded_file, dtype=str)
+            # เคลียร์ช่องว่างซ้ายขวาในชื่อหัวคอลัมน์
+            df.columns = df.columns.str.strip()
             st.dataframe(df, use_container_width=True)
             for idx, row in df.iterrows():
                 name = str(row.get("ชื่อ-นามสกุล", "")).strip()
-                if name and name.lower() != "nan":
-                    final_suspects.append({"index": len(final_suspects) + 1, "name": name, "age": str(row.get("อายุ", "-")).replace(".0", ""), "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", ""), "address": str(row.get("ที่อยู่", "-")), "charge": str(row.get("ฐานความผิด", "-"))})
+                if name and name.lower() != "nan" and name.lower() != "none":
+                    final_suspects.append({
+                        "index": len(final_suspects) + 1, 
+                        "name": name, 
+                        "age": str(row.get("อายุ", "-")).replace(".0", "").strip(), 
+                        "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", "").strip(), 
+                        "address": str(row.get("ที่อยู่", "-")).strip(), 
+                        "charge": str(row.get("ฐานความผิด", "-")).strip()
+                    })
 
     arrest_circumstances = st.text_area("พฤติการณ์และรายละเอียดเกี่ยวกับเหตุแห่งการจับ", height=150)
     st.divider()
