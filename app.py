@@ -201,55 +201,64 @@ with tab_m22_23:
 
     st.header("⚖️ ส่วนที่ 1: ข้อมูลกลางสำหรับ ม.22 และ ม.23")
     
+    # -----------------------------------------
+    # ข้อมูลฝั่ง ม.22
+    # -----------------------------------------
     st.markdown("**► ข้อมูลฝั่ง ม.22 (แบบแจ้ง)**")
-    col22_1, col22_2 = st.columns(2)
-    with col22_1:
-        detention_location = st.text_input("สถานที่ควบคุมตัวไว้ (ม.22)", value="กองกำกับการ 3 กองบังคับการปราบปราม")
-        m22_officer_sel = st.selectbox("เจ้าหน้าที่รัฐผู้รับผิดชอบ (ม.22)", officer_choices, key="m22_res_s")
-        m22_officer_phone = st.text_input("เบอร์โทรศัพท์ ผู้รับผิดชอบ (ม.22)", value="065-558-5054")
-    with col22_2:
-        fm_choice = st.radio("เหตุสุดวิสัยที่ไม่สามารถบันทึกภาพ/เสียง (ใช้ร่วมกัน)", ["ไม่มี", "อื่นๆ ระบุ"], horizontal=True)
-        force_majeure = st.text_input("ระบุเหตุสุดวิสัย") if fm_choice == "อื่นๆ ระบุ" else fm_choice
-        m22_notif_sel = st.selectbox("เจ้าหน้าที่ผู้แจ้ง (ม.22)", officer_choices, key="m22_notif_s")
-        m22_notif_phone = st.text_input("เบอร์โทรศัพท์ ผู้แจ้ง (ม.22)", value="065-558-5054")
+    
+    detention_location = st.text_input("สถานที่ควบคุมตัวไว้ (ม.22)", value="กองกำกับการ 3 กองบังคับการปราบปราม")
+    m22_officer_sel = st.selectbox("เจ้าหน้าที่รัฐผู้รับผิดชอบ (ม.22 และ ม.23)", officer_choices, key="m22_res_s")
+    m22_officer_phone = st.text_input("เบอร์โทรศัพท์ ผู้รับผิดชอบ (ม.22)", value="065-558-5054")
+    
+    fm_choice = st.radio("เหตุสุดวิสัยที่ไม่สามารถบันทึกภาพ/เสียง (ใช้ร่วมกัน)", ["ไม่มี", "อื่นๆ ระบุ"], horizontal=True)
+    force_majeure = st.text_input("ระบุเหตุสุดวิสัย") if fm_choice == "อื่นๆ ระบุ" else fm_choice
+    
+    m22_notif_sel = st.selectbox("เจ้าหน้าที่ผู้แจ้ง (ม.22)", officer_choices, key="m22_notif_s")
+    m22_notif_phone = st.text_input("เบอร์โทรศัพท์ ผู้แจ้ง (ม.22)", value="065-558-5054")
 
     # ประมวลผลดึง ยศ/ชื่อ/ตำแหน่ง ของผู้รับผิดชอบ ม.22 เพื่อส่งไป ม.23 อัตโนมัติ
     m22_dict = next((item for item in shared.get("officers_data", []) if item["display"] == m22_officer_sel), {"fullname": m22_officer_sel, "position": ""})
 
+    st.divider()
+
+    # -----------------------------------------
+    # ข้อมูลฝั่ง ม.23
+    # -----------------------------------------
     st.markdown("**► ข้อมูลฝั่ง ม.23 (บันทึกการควบคุมตัว)**")
     st.info(f"📌 วันที่/เวลา/สถานที่ถูกควบคุมตัว: ดึงจากบันทึกจับกุมอัตโนมัติ\n📌 เจ้าหน้าที่ผู้ทำการควบคุมตัว: **{m22_dict['fullname']}** ตำแหน่ง **{m22_dict['position']}** (ดึงจาก ม.22)")
     
-    col23_1, col23_2 = st.columns(2)
-    with col23_1:
-        dest_location = st.text_input("สถานที่ปลายทางที่รับตัว (ศาล/เรือนจำ)", value="ศาลจังหวัดสกลนคร")
-        
-        st.markdown("**เจ้าหน้าที่ผู้รับผิดชอบการย้ายตัว:**")
-        transfer_sel = st.selectbox("เลือกเจ้าหน้าที่ผู้ย้ายตัว", dropdown_opts, key="m23_tr_s")
-        if transfer_sel == "อื่นๆ (กรอกเพิ่มเติม)":
-            transfer_name = st.text_input("ชื่อ-สกุล (ผู้ย้ายตัว)")
-            transfer_pos = st.text_input("ตำแหน่ง (ผู้ย้ายตัว)")
-        else:
-            tr_dict = next((item for item in shared.get("officers_data", []) if item["display"] == transfer_sel), {})
-            transfer_name = tr_dict.get("fullname", transfer_sel)
-            transfer_pos = tr_dict.get("position", "")
-        transfer_phone = st.text_input("เบอร์โทรศัพท์ (ผู้ย้ายตัว)")
+    dest_location = st.text_input("สถานที่ปลายทางที่รับตัว (ศาล/เรือนจำ)", value="ศาลจังหวัดสกลนคร")
+    
+    st.markdown("**เจ้าหน้าที่ผู้รับผิดชอบการย้ายตัว:**")
+    transfer_sel = st.selectbox("เลือกเจ้าหน้าที่ผู้ย้ายตัว", dropdown_opts, key="m23_tr_s")
+    if transfer_sel == "อื่นๆ (กรอกเพิ่มเติม)":
+        transfer_name = st.text_input("ชื่อ-สกุล (ผู้ย้ายตัว)")
+        transfer_pos = st.text_input("ตำแหน่ง (ผู้ย้ายตัว)")
+    else:
+        tr_dict = next((item for item in shared.get("officers_data", []) if item["display"] == transfer_sel), {})
+        transfer_name = tr_dict.get("fullname", transfer_sel)
+        transfer_pos = tr_dict.get("position", "")
+    transfer_phone = st.text_input("เบอร์โทรศัพท์ (ผู้ย้ายตัว)")
 
-    with col23_2:
-        st.markdown("**วัน/เวลา/สถานที่ของการปล่อยตัว หรือ มอบตัว:**")
-        release_date = st.date_input("วันที่ปล่อย/มอบตัว", key="rel_d")
-        release_time = st.text_input("เวลาปล่อย/มอบตัว", value=datetime.datetime.now().strftime('%H:%M'))
-        release_location = st.text_input("สถานที่ปล่อย/มอบตัว", value="ศาลจังหวัดสกลนคร")
-        
-        st.markdown("**เจ้าหน้าที่ผู้ออกคำสั่งให้ควบคุมตัว:**")
-        cmd_sel = st.selectbox("เลือกผู้ออกคำสั่ง", dropdown_opts, key="m23_cmd_s")
-        if cmd_sel == "อื่นๆ (กรอกเพิ่มเติม)":
-            cmd_name = st.text_input("ชื่อ-สกุล (ผู้ออกคำสั่ง)")
-            cmd_pos = st.text_input("ตำแหน่ง (ผู้ออกคำสั่ง)")
-        else:
-            cmd_dict = next((item for item in shared.get("officers_data", []) if item["display"] == cmd_sel), {})
-            cmd_name = cmd_dict.get("fullname", cmd_sel)
-            cmd_pos = cmd_dict.get("position", "")
-        cmd_phone = st.text_input("เบอร์โทรศัพท์ (ผู้ออกคำสั่ง)")
+    st.divider()
+
+    st.markdown("**วัน/เวลา/สถานที่ของการปล่อยตัว หรือ มอบตัว:**")
+    release_date = st.date_input("วันที่ปล่อย/มอบตัว", key="rel_d")
+    release_time = st.text_input("เวลาปล่อย/มอบตัว", value=datetime.datetime.now().strftime('%H:%M'))
+    release_location = st.text_input("สถานที่ปล่อย/มอบตัว", value="ศาลจังหวัดสกลนคร")
+    
+    st.markdown("**เจ้าหน้าที่ผู้ออกคำสั่งให้ควบคุมตัว:**")
+    cmd_sel = st.selectbox("เลือกผู้ออกคำสั่ง", dropdown_opts, key="m23_cmd_s")
+    if cmd_sel == "อื่นๆ (กรอกเพิ่มเติม)":
+        cmd_name = st.text_input("ชื่อ-สกุล (ผู้ออกคำสั่ง)")
+        cmd_pos = st.text_input("ตำแหน่ง (ผู้ออกคำสั่ง)")
+    else:
+        cmd_dict = next((item for item in shared.get("officers_data", []) if item["display"] == cmd_sel), {})
+        cmd_name = cmd_dict.get("fullname", cmd_sel)
+        cmd_pos = cmd_dict.get("position", "")
+    cmd_phone = st.text_input("เบอร์โทรศัพท์ (ผู้ออกคำสั่ง)")
+
+    physical_cond = st.text_input("สภาพร่างกายและจิตใจ (ม.23)", value="มีสภาพร่างกายและจิตใจปกติ")
 
     default_note = "ในการควบคุม เจ้าหน้าที่ตำรวจชุดจับกุม มิได้ทำร้าย ขู่เข็ญ อันเป็นการทรมาน การกระทำที่โหดร้าย ไร้มนุษยธรรม หรือย่ำยี่ศักดิ์ศรีความเป็นมนุษย์ หรือการกระทำให้บุคคลสูญหายแต่อย่างใด และไฟล์ภาพเคลื่อนไหวได้จัดเก็บไว้ที่หน่วยงานแล้ว"
     note_choice = st.radio("บันทึกอื่น ๆ เพิ่มเติม (ม.23)", ["ใช้ข้อความมาตรฐาน (Defalet)", "อื่นๆ (ระบุข้อความเอง)"])
@@ -262,16 +271,14 @@ with tab_m22_23:
         with st.container(border=True):
             st.subheader(f"ผู้ต้องหา: {s['name']}")
             
-            c_marks, c_pass = st.columns(2)
-            s['marks'] = c_marks.text_input(f"ตำหนิรูปพรรณ (เช่น แผลเป็นที่แขน, รอยสักที่คอ)", value="ไม่มี", key=f"marks_{s['index']}")
-            s['passport'] = c_pass.text_input(f"หนังสือเดินทาง", value="-", key=f"pass_{s['index']}")
+            s['marks'] = st.text_input(f"ตำหนิรูปพรรณ (เช่น แผลเป็นที่แขน, รอยสักที่คอ)", value="ไม่มี", key=f"marks_{s['index']}")
+            s['passport'] = st.text_input(f"หนังสือเดินทาง", value="-", key=f"pass_{s['index']}")
             
             st.caption("📷 อัปโหลดรูปถ่าย 4 มุม (รูปชุดนี้จะใช้แนบท้ายทั้งเอกสาร ม.22 และ ม.23 อัตโนมัติ)")
-            c1, c2, c3, c4 = st.columns(4)
-            s['img_f'] = c1.file_uploader("หน้าตรง", type=['png', 'jpg'], key=f"pic_f_{s['index']}")
-            s['img_l'] = c2.file_uploader("หันซ้าย", type=['png', 'jpg'], key=f"pic_l_{s['index']}")
-            s['img_r'] = c3.file_uploader("หันขวา", type=['png', 'jpg'], key=f"pic_r_{s['index']}")
-            s['img_b'] = c4.file_uploader("หันหลัง", type=['png', 'jpg'], key=f"pic_b_{s['index']}")
+            s['img_f'] = st.file_uploader("หน้าตรง", type=['png', 'jpg'], key=f"pic_f_{s['index']}")
+            s['img_l'] = st.file_uploader("หันซ้าย", type=['png', 'jpg'], key=f"pic_l_{s['index']}")
+            s['img_r'] = st.file_uploader("หันขวา", type=['png', 'jpg'], key=f"pic_r_{s['index']}")
+            s['img_b'] = st.file_uploader("หันหลัง", type=['png', 'jpg'], key=f"pic_b_{s['index']}")
 
             if st.button(f"📄 สร้างและดาวน์โหลดเอกสาร ม.22 และ ม.23 ของ {s['name']}", key=f"btn_m2223_{s['index']}", type="primary"):
                 try:
@@ -280,7 +287,7 @@ with tab_m22_23:
                     ctx_m22 = {
                         "suspect": s, "arrest_date_text": shared.get("arrest_date_text", ""), "arrest_time": shared.get("arrest_time", ""),
                         "arrest_location": shared.get("arrest_location", ""), "arrest_circumstances": shared.get("arrest_circumstances", ""),
-                        "detention_location": detention_location, "officer_m22_name": m22_officer_sel, "officer_m22_phone": m22_officer_phone,
+                        "detention_location": detention_location, "officer_m22_name": m22_dict['fullname'], "officer_m22_phone": m22_officer_phone,
                         "notif_officer_name": m22_notif_sel, "notif_phone": m22_notif_phone, "force_majeure": force_majeure
                     }
                     doc_m22.render(ctx_m22)
@@ -289,7 +296,7 @@ with tab_m22_23:
                     # -- จัดเตรียมรูปภาพแนบท้าย ม.22 --
                     doc_att = DocxTemplate("template_attachment.docx")
                     ctx_att = {
-                        "suspect": s, "officer_m22_name": m22_officer_sel,
+                        "suspect": s, "officer_m22_name": m22_dict['fullname'],
                         "pic_front": InlineImage(doc_att, s['img_f'], width=Mm(75)) if s['img_f'] else "",
                         "pic_left": InlineImage(doc_att, s['img_l'], width=Mm(75)) if s['img_l'] else "",
                         "pic_right": InlineImage(doc_att, s['img_r'], width=Mm(75)) if s['img_r'] else "",
@@ -309,6 +316,7 @@ with tab_m22_23:
                         "trans_name": transfer_name, "trans_pos": transfer_pos, "trans_phone": transfer_phone,
                         "release_date_text": format_thai_date(release_date), "release_time": release_time, "release_location": release_location,
                         "force_majeure": force_majeure, "additional_notes": m23_additional_notes,
+                        "physical_cond": physical_cond, "officer_m22_name": m22_dict['fullname'], 
                         "pic_front": InlineImage(doc_m23, s['img_f'], width=Mm(75)) if s['img_f'] else "",
                         "pic_left": InlineImage(doc_m23, s['img_l'], width=Mm(75)) if s['img_l'] else "",
                         "pic_right": InlineImage(doc_m23, s['img_r'], width=Mm(75)) if s['img_r'] else "",
@@ -318,9 +326,9 @@ with tab_m22_23:
                     bio_m23 = BytesIO(); doc_m23.save(bio_m23); bio_m23.seek(0)
                     
                     st.success(f"✅ ประมวลผลเอกสารของ {s['name']} เสร็จสิ้น")
-                    dl1, dl2, dl3 = st.columns(3)
-                    with dl1: st.download_button(label="⬇️ 1. โหลด ม.22", data=bio_m22.getvalue(), file_name=f"ม22_{s['name']}.docx", use_container_width=True)
-                    with dl2: st.download_button(label="⬇️ 2. โหลดแนบท้าย ม.22", data=bio_att.getvalue(), file_name=f"แนบท้าย_{s['name']}.docx", use_container_width=True)
-                    with dl3: st.download_button(label="⬇️ 3. โหลด ม.23", data=bio_m23.getvalue(), file_name=f"ม23_{s['name']}.docx", use_container_width=True)
+                    
+                    st.download_button(label="⬇️ 1. โหลด ม.22", data=bio_m22.getvalue(), file_name=f"ม22_{s['name']}.docx", use_container_width=True)
+                    st.download_button(label="⬇️ 2. โหลดแนบท้าย ม.22", data=bio_att.getvalue(), file_name=f"แนบท้าย_{s['name']}.docx", use_container_width=True)
+                    st.download_button(label="⬇️ 3. โหลด ม.23", data=bio_m23.getvalue(), file_name=f"ม23_{s['name']}.docx", use_container_width=True)
                 except Exception as e:
                     st.error(f"เกิดข้อผิดพลาด: {e}")
