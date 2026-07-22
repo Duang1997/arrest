@@ -92,7 +92,6 @@ with tab_arrest:
                 st.session_state[df_key] = pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
             
             edited_officers = st.data_editor(st.session_state[df_key], num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
-            st.session_state[df_key] = edited_officers
             
             valid_officers = edited_officers[edited_officers["ชื่อ-นามสกุล"].str.strip() != ""]
             officers_list = []
@@ -120,7 +119,6 @@ with tab_arrest:
     warrant_text, warrant_details = "", ""
     if arrest_type == "จับตามหมายจับ":
         edited_warrants = st.data_editor(st.session_state.warrant_df, num_rows="dynamic", key="warrant_editor", use_container_width=True)
-        st.session_state.warrant_df = edited_warrants
         w_list = []
         for _, w in edited_warrants.iterrows():
             if w["ศาลที่ออกหมาย"]:
@@ -133,7 +131,6 @@ with tab_arrest:
 
     if suspect_mode == "กรอกผ่านตารางในเว็บ":
         edited_suspects = st.data_editor(st.session_state.suspect_df, num_rows="dynamic", key="suspect_editor", use_container_width=True)
-        st.session_state.suspect_df = edited_suspects
         for idx, row in edited_suspects.iterrows():
             name = str(row.get("ชื่อ-นามสกุล", "")).strip()
             if name and name.lower() != "nan":
@@ -173,7 +170,6 @@ with tab_arrest:
         }
         st.caption("กรอกรายการสิ่งของตรวจยึด หากเลือก 'ยึดจากใคร' เป็น 'อื่นๆ' ให้ระบุชื่อในช่อง 'ระบุชื่อ (กรณีอื่นๆ)'")
         edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
-        st.session_state.seized_df = edited_seized
         seized_data_to_process = edited_seized
     else:
         st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `รายการสิ่งของ` | `จำนวน` | `ประเภท` | `ยึดจากใคร` | `ระบุชื่อ (กรณีอื่นๆ)` | `สถานที่ยึด`")
@@ -355,7 +351,6 @@ with tab_m22_23:
 
             if st.button(f"📄 สร้างและดาวน์โหลดเอกสาร ม.22 และ ม.23 ของ {s['name']}", key=f"btn_m2223_{s['index']}", type="primary"):
                 try:
-                    # ประมวลผลข้อความเหตุแห่งการจับกุม (ม.23)
                     if arr_type == "จับสด":
                         caught_in_act_text = s.get("charge", "")
                         warrant_order_text = ""
