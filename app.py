@@ -47,6 +47,8 @@ if "suspect_df" not in st.session_state:
     st.session_state.suspect_df = pd.DataFrame([{"ชื่อ-นามสกุล": "", "อายุ": "", "เลขประจำตัวประชาชน": "", "ที่อยู่": "", "ฐานความผิด": ""}])
 if "warrant_df" not in st.session_state:
     st.session_state.warrant_df = pd.DataFrame([{"ศาลที่ออกหมาย": "", "เลขที่หมาย": "", "ลงวันที่": ""}])
+if "seized_df" not in st.session_state:
+    st.session_state.seized_df = pd.DataFrame([{"รายการสิ่งของ": "", "จำนวน": "", "ประเภท": "", "ยึดจากใคร": "", "ระบุชื่อ (กรณีอื่นๆ)": "", "สถานที่ยึด": ""}])
 
 def add_unit():
     st.session_state.unit_count += 1
@@ -137,7 +139,7 @@ with tab_arrest:
             if name and name.lower() != "nan":
                 final_suspects.append({"index": len(final_suspects) + 1, "name": name, "age": str(row.get("อายุ", "-")).replace(".0", ""), "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", ""), "address": str(row.get("ที่อยู่", "-")), "charge": str(row.get("ฐานความผิด", "-"))})
     else:
-        uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx)", type=["xlsx"])
+        uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของผู้ต้องหา", type=["xlsx"])
         if uploaded_file:
             df = pd.read_excel(uploaded_file, dtype=str)
             df.columns = df.columns.str.strip()
@@ -157,7 +159,45 @@ with tab_arrest:
     arrest_circumstances = st.text_area("พฤติการณ์และรายละเอียดเกี่ยวกับเหตุแห่งการจับ", height=150, placeholder="ระบุรายละเอียดพฤติการณ์จับกุม...")
     st.divider()
 
-    st.header("ส่วนที่ 4: สิทธิ และการแจ้งญาติ")
+    st.header("ส่วนที่ 4: รายการสิ่งของตรวจยึด")
+    current_suspect_names = [s["name"] for s in final_suspects] if final_suspects else []
+    seized_owner_opts = current_suspect_names + ["อื่นๆ"]
+
+    config = {
+        "ยึดจากใคร": st.column_config.SelectboxColumn("ยึดจากใคร", options=seized_owner_opts, required=False)
+    }
+    
+    st.caption("กรอกรายการสิ่งของตรวจยึด หากเลือก 'ยึดจากใคร' เป็น 'อื่นๆ' ให้ระบุชื่อในช่องถัดไป")
+    edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
+    st.session_state.seized_df = edited_seized
+
+    has_seized_attach = st.checkbox("ปรากฏตามเอกสารแนบท้ายบันทึกจับกุมฉบับนี้")
+
+    seized_list_text = []
+    item_count = 1
+    for idx, row in edited_seized.iterrows():
+        item = str(row.get("รายการสิ่งของ", "")).strip()
+        if item and item.lower() not in ["nan", "none", ""]:
+            qty = str(row.get("จำนวน", "")).strip()
+            owner = str(row.get("ยึดจากใคร", "")).strip()
+            if owner == "อื่นๆ":
+                owner = str(row.get("ระบุชื่อ (กรณีอื่นๆ)", "")).strip()
+            loc = str(row.get("สถานที่ยึด", "")).strip()
+            
+            # 1. โทรศัพท์มือถือ จำนวน 1 เครื่อง อยู่ในความครอบครองของ นาย A บริเวณห้องพัก
+            txt = f"{item_count}. {item} จำนวน {qty} อยู่ในความครอบครองของ {owner} บริเวณ{loc}"
+            seized_list_text.append(txt)
+            item_count += 1
+            
+    final_seized_text = "\n".join(seized_list_text)
+    if has_seized_attach and final_seized_text:
+        final_seized_text += "\nปรากฏตามเอกสารแนบท้ายบันทึกจับกุมฉบับนี้"
+    elif not final_seized_text:
+        final_seized_text = "-"
+
+    st.divider()
+
+    st.header("ส่วนที่ 5: สิทธิ และการแจ้งญาติ")
     if not final_suspects:
         st.warning("⚠️ กรุณากรอกข้อมูลผู้ต้องหาก่อน")
     else:
@@ -193,7 +233,8 @@ with tab_arrest:
         charges_text = warrant_text + " ".join(charge_list)
         context_arrest = {
             "record_location": record_location, "record_datetime_th": record_datetime_th, "arrest_datetime_th": arrest_datetime_th, "arrest_location": arrest_location,
-            "arrest_circumstances": arrest_circumstances, "suspects": final_suspects, "units": units_data, "arrest_date_text": format_thai_date(arrest_date), "warrant_text": warrant_text, "charges_text": charges_text
+            "arrest_circumstances": arrest_circumstances, "suspects": final_suspects, "units": units_data, "arrest_date_text": format_thai_date(arrest_date), 
+            "warrant_text": warrant_text, "charges_text": charges_text, "seized_items_text": final_seized_text
         }
         doc_arrest = DocxTemplate("template_arrest.docx")
         doc_arrest.render(context_arrest)
@@ -218,7 +259,7 @@ with tab_m22_23:
     
     st.markdown("**► ข้อมูลฝั่ง ม.22 (แบบแจ้ง)**")
     detention_location = st.text_input("สถานที่ควบคุมตัวไว้ (ม.22)", value="", placeholder="เช่น กองกำกับการ 3 กองบังคับการปราบปราม")
-    m22_officer_sel = st.selectbox("เจ้าหน้าที่รัฐผู้รับผิดชอบ (ม.22 และ ม.23)", officer_choices, key="m22_res_s")
+    m22_officer_sel = st.selectbox("เจ้าหน้าที่รัฐผู้รับผิดชอบ (ม.22)", officer_choices, key="m22_res_s")
     m22_officer_phone = st.text_input("เบอร์โทรศัพท์ ผู้รับผิดชอบ (ม.22)", value="", placeholder="เช่น 065-558-5054")
     
     fm_choice = st.radio("เหตุสุดวิสัยที่ไม่สามารถบันทึกภาพ/เสียง (ใช้ร่วมกัน)", ["ไม่มี", "อื่นๆ ระบุ"], horizontal=True)
@@ -227,17 +268,29 @@ with tab_m22_23:
     m22_notif_sel = st.selectbox("เจ้าหน้าที่ผู้แจ้ง (ม.22)", officer_choices, key="m22_notif_s")
     m22_notif_phone = st.text_input("เบอร์โทรศัพท์ ผู้แจ้ง (ม.22)", value="", placeholder="เช่น 065-558-5054")
 
-    # ประมวลผลดึงข้อมูล ม.22 ไป ม.23
     m22_dict = next((item for item in shared.get("officers_data", []) if item["display"] == m22_officer_sel), {"fullname": m22_officer_sel, "position": ""})
 
     st.divider()
 
     st.markdown("**► ข้อมูลฝั่ง ม.23 (บันทึกการควบคุมตัว)**")
-    st.info(f"📌 วันที่/เวลา/สถานที่ถูกควบคุมตัว: ดึงจากบันทึกจับกุมอัตโนมัติ\n📌 เจ้าหน้าที่ผู้ทำการควบคุมตัว: **{m22_dict['fullname']}** ตำแหน่ง **{m22_dict['position']}** (ดึงจาก ม.22)")
+    st.info(f"📌 วันที่/เวลา/สถานที่ถูกควบคุมตัว: ดึงจากบันทึกจับกุมอัตโนมัติ")
     
+    # ------------------------------------------------------------------
+    # เปลี่ยนเจ้าหน้าที่ควบคุมตัว (ม.23) ให้เลือกจากชุดจับกุม
+    # ------------------------------------------------------------------
+    st.markdown("**เจ้าหน้าที่ผู้ทำการควบคุมตัว (ม.23):**")
+    ctrl_sel = st.selectbox("เลือกเจ้าหน้าที่ผู้ควบคุมตัว", dropdown_opts, key="m23_ctrl_s")
+    if ctrl_sel == "อื่นๆ (กรอกเพิ่มเติม)":
+        ctrl_name = st.text_input("ชื่อ-สกุล (ผู้ควบคุมตัว)", placeholder="ระบุ ชื่อ-นามสกุล")
+        ctrl_pos = st.text_input("ตำแหน่ง (ผู้ควบคุมตัว)", placeholder="ระบุ ตำแหน่ง")
+    else:
+        ctrl_dict = next((item for item in shared.get("officers_data", []) if item["display"] == ctrl_sel), {})
+        ctrl_name = ctrl_dict.get("fullname", ctrl_sel)
+        ctrl_pos = ctrl_dict.get("position", "")
+    ctrl_phone = st.text_input("เบอร์โทรศัพท์ (ผู้ควบคุมตัว)", placeholder="เช่น 065-558-5054")
+    
+    st.markdown("**สถานที่ปลายทาง และ การย้ายตัว:**")
     dest_location = st.text_input("สถานที่ปลายทางที่รับตัว (ศาล/เรือนจำ)", value="", placeholder="เช่น ศาลจังหวัดสกลนคร")
-    
-    st.markdown("**เจ้าหน้าที่ผู้รับผิดชอบการย้ายตัว:**")
     transfer_sel = st.selectbox("เลือกเจ้าหน้าที่ผู้ย้ายตัว", dropdown_opts, key="m23_tr_s")
     if transfer_sel == "อื่นๆ (กรอกเพิ่มเติม)":
         transfer_name = st.text_input("ชื่อ-สกุล (ผู้ย้ายตัว)", placeholder="ระบุ ชื่อ-นามสกุล")
@@ -317,7 +370,7 @@ with tab_m22_23:
                     ctx_m23 = {
                         "suspect": s, "arrest_date_text": shared.get("arrest_date_text", ""), "arrest_time": shared.get("arrest_time", ""),
                         "arrest_location": shared.get("arrest_location", ""), "warrant_details": shared.get("warrant_details", ""),
-                        "ctrl_name": m22_dict['fullname'], "ctrl_pos": m22_dict['position'], "ctrl_phone": m22_officer_phone,
+                        "ctrl_name": ctrl_name, "ctrl_pos": ctrl_pos, "ctrl_phone": ctrl_phone,
                         "cmd_name": cmd_name, "cmd_pos": cmd_pos, "cmd_phone": cmd_phone,
                         "dest_location": dest_location,
                         "trans_name": transfer_name, "trans_pos": transfer_pos, "trans_phone": transfer_phone,
