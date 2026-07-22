@@ -231,6 +231,7 @@ with tab_arrest:
                 s['additional_statement'] = st.text_area("ให้การเพิ่มเติมว่า...", value="รับว่าเป็นบุคคลตามหมายจับจริง และไม่เคยถูกจับตามหมายจับดังกล่าวมาก่อน", key=f"ar_add_{s['index']}")
 
     st.session_state.shared_data = {
+        "arrest_type": arrest_type,
         "arrest_location": arrest_location,
         "arrest_date_text": format_thai_date(arrest_date),
         "arrest_time": arrest_time,
@@ -265,6 +266,7 @@ with tab_m22_23:
     suspects_from_arrest = shared.get("suspects", [])
     officer_choices = shared.get("officer_displays", ["ไม่พบรายชื่อ"])
     dropdown_opts = officer_choices + ["อื่นๆ (กรอกเพิ่มเติม)"]
+    arr_type = shared.get("arrest_type", "")
 
     if not suspects_from_arrest:
         st.warning("⚠️ ไม่พบข้อมูลผู้ต้องหา กรุณากรอกตารางผู้ต้องหาในแท็บ 'บันทึกจับกุม' ก่อน")
@@ -353,6 +355,17 @@ with tab_m22_23:
 
             if st.button(f"📄 สร้างและดาวน์โหลดเอกสาร ม.22 และ ม.23 ของ {s['name']}", key=f"btn_m2223_{s['index']}", type="primary"):
                 try:
+                    # ประมวลผลข้อความเหตุแห่งการจับกุม (ม.23)
+                    if arr_type == "จับสด":
+                        caught_in_act_text = s.get("charge", "")
+                        warrant_order_text = ""
+                    elif arr_type == "จับตามหมายจับ":
+                        caught_in_act_text = ""
+                        warrant_order_text = shared.get("warrant_details", "")
+                    else:
+                        caught_in_act_text = ""
+                        warrant_order_text = ""
+
                     # -- จัดเตรียม Docx ม.22 --
                     doc_m22 = DocxTemplate("template_section22.docx")
                     ctx_m22 = {
@@ -380,7 +393,8 @@ with tab_m22_23:
                     doc_m23 = DocxTemplate("template_section23.docx")
                     ctx_m23 = {
                         "suspect": s, "arrest_date_text": shared.get("arrest_date_text", ""), "arrest_time": shared.get("arrest_time", ""),
-                        "arrest_location": shared.get("arrest_location", ""), "warrant_details": shared.get("warrant_details", ""),
+                        "arrest_location": shared.get("arrest_location", ""),
+                        "caught_in_act_text": caught_in_act_text, "warrant_order_text": warrant_order_text,
                         "ctrl_name": ctrl_name, "ctrl_pos": ctrl_pos, "ctrl_phone": ctrl_phone,
                         "cmd_name": cmd_name, "cmd_pos": cmd_pos, "cmd_phone": cmd_phone,
                         "dest_location": dest_location,
