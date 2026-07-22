@@ -37,16 +37,22 @@ def combine_date_time_text(date_obj, time_str):
         return f"{date_text} เวลาประมาณ {time_str} น."
     return date_text
 
-# --- จัดการ Session State ---
+# --- จัดการ Session State (ป้องกันข้อมูลหายเมื่อสลับแท็บ) ---
 if 'shared_data' not in st.session_state:
     st.session_state.shared_data = {}
 if 'unit_count' not in st.session_state:
     st.session_state.unit_count = 1
 
+# ล็อก State ของตารางต่างๆ เพื่อไม่ให้ถูกรีเซ็ต
+if "suspect_df" not in st.session_state:
+    st.session_state.suspect_df = pd.DataFrame([{"ชื่อ-นามสกุล": "", "อายุ": "", "เลขประจำตัวประชาชน": "", "ที่อยู่": "", "ฐานความผิด": ""}])
+if "warrant_df" not in st.session_state:
+    st.session_state.warrant_df = pd.DataFrame([{"ศาลที่ออกหมาย": "", "เลขที่หมาย": "", "ลงวันที่": ""}])
+
 def add_unit():
     st.session_state.unit_count += 1
 
-# --- โครงสร้างระบบ Tabs (ยุบรวม ม.22 และ 23) ---
+# --- โครงสร้างระบบ Tabs ---
 tab_arrest, tab_m22_23 = st.tabs(["📝 ฟังก์ชันบันทึกจับกุม", "⚖️ ฟังก์ชันแบบแจ้ง ม.22 และบันทึก ม.23"])
 
 # ==========================================
@@ -71,7 +77,7 @@ with tab_arrest:
 
     st.header("ส่วนที่ 2: รายละเอียดเกี่ยวกับหน่วยการจับกุม")
     units_data = []
-    officers_data = [] # เก็บเป็นชุดข้อมูลสำหรับดึงไปใช้ใน ม.23
+    officers_data = [] 
     officer_displays = [] 
     default_cmd = "พล.ต.ท.ณัฐศักดิ์ เชาวนาศัย ผบช.ก., พ.ต.ต.พัฒนศักดิ์ บุบผาสุวรรณ ผบก.ป., พ.ต.อ.สุเทพ โตอิ้ม รอง ผบก.ป., พ.ต.อ.สุริยศักดิ์ จิราวัสน์ ผกก.3 บก.ป., พ.ต.ท.พงษ์พิทักษ์ เหล็กชูชาติ, พ.ต.ท.รัฐมนตรี พันชูกลาง, พ.ต.ท.ณัฐดนัย สีแข่ไตร, พ.ต.ท.ศิษฏ์ พูลวงศ์, พ.ต.ท.พัฒษพงศ์ เสณีแสนเสนา รอง ผกก.3 บก.ป."
 
@@ -81,8 +87,13 @@ with tab_arrest:
             unit_name = st.text_input(f"ชื่อหน่วยงาน", value="กก.๓ บก.ป." if i==0 else "", key=f"unit_name_{i}")
             commanders_text = st.text_area(f"ภายใต้อำนวยการสั่งการของ", value=default_cmd if i==0 else "", key=f"cmd_{i}")
             
-            default_officers = pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
-            edited_officers = st.data_editor(default_officers, num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
+            # ล็อก State ของตารางรายชื่อเจ้าหน้าที่
+            df_key = f"officer_df_{i}"
+            if df_key not in st.session_state:
+                st.session_state[df_key] = pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
+            
+            edited_officers = st.data_editor(st.session_state[df_key], num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
+            st.session_state[df_key] = edited_officers # อัปเดตข้อมูลกลับเข้า Session
             
             valid_officers = edited_officers[edited_officers["ชื่อ-นามสกุล"].str.strip() != ""]
             officers_list = []
@@ -93,7 +104,6 @@ with tab_arrest:
                 
                 officers_data.append({"fullname": fullname, "position": position, "display": display})
                 officer_displays.append(display)
-                
                 officers_list.append({"rank": str(r.get('ยศ', '')), "name_only": str(r.get('ชื่อ-นามสกุล', '')), "display": display})
             
             signature_rows = []
@@ -110,8 +120,8 @@ with tab_arrest:
     arrest_type = st.radio("ประเภทการจับกุม", ["จับสด", "จับตามหมายจับ"], horizontal=True)
     warrant_text, warrant_details = "", ""
     if arrest_type == "จับตามหมายจับ":
-        warrant_df = pd.DataFrame([{"ศาลที่ออกหมาย": "", "เลขที่หมาย": "", "ลงวันที่": ""}])
-        edited_warrants = st.data_editor(warrant_df, num_rows="dynamic", use_container_width=True)
+        edited_warrants = st.data_editor(st.session_state.warrant_df, num_rows="dynamic", key="warrant_editor", use_container_width=True)
+        st.session_state.warrant_df = edited_warrants
         w_list = []
         for _, w in edited_warrants.iterrows():
             if w["ศาลที่ออกหมาย"]:
@@ -123,8 +133,8 @@ with tab_arrest:
     final_suspects = []
 
     if suspect_mode == "กรอกผ่านตารางในเว็บ":
-        suspect_df = pd.DataFrame([{"ชื่อ-นามสกุล": "", "อายุ": "", "เลขประจำตัวประชาชน": "", "ที่อยู่": "", "ฐานความผิด": ""}])
-        edited_suspects = st.data_editor(suspect_df, num_rows="dynamic", use_container_width=True)
+        edited_suspects = st.data_editor(st.session_state.suspect_df, num_rows="dynamic", key="suspect_editor", use_container_width=True)
+        st.session_state.suspect_df = edited_suspects
         for idx, row in edited_suspects.iterrows():
             name = str(row.get("ชื่อ-นามสกุล", "")).strip()
             if name and name.lower() != "nan":
@@ -201,11 +211,7 @@ with tab_m22_23:
 
     st.header("⚖️ ส่วนที่ 1: ข้อมูลกลางสำหรับ ม.22 และ ม.23")
     
-    # -----------------------------------------
-    # ข้อมูลฝั่ง ม.22
-    # -----------------------------------------
     st.markdown("**► ข้อมูลฝั่ง ม.22 (แบบแจ้ง)**")
-    
     detention_location = st.text_input("สถานที่ควบคุมตัวไว้ (ม.22)", value="กองกำกับการ 3 กองบังคับการปราบปราม")
     m22_officer_sel = st.selectbox("เจ้าหน้าที่รัฐผู้รับผิดชอบ (ม.22 และ ม.23)", officer_choices, key="m22_res_s")
     m22_officer_phone = st.text_input("เบอร์โทรศัพท์ ผู้รับผิดชอบ (ม.22)", value="065-558-5054")
@@ -216,14 +222,11 @@ with tab_m22_23:
     m22_notif_sel = st.selectbox("เจ้าหน้าที่ผู้แจ้ง (ม.22)", officer_choices, key="m22_notif_s")
     m22_notif_phone = st.text_input("เบอร์โทรศัพท์ ผู้แจ้ง (ม.22)", value="065-558-5054")
 
-    # ประมวลผลดึง ยศ/ชื่อ/ตำแหน่ง ของผู้รับผิดชอบ ม.22 เพื่อส่งไป ม.23 อัตโนมัติ
+    # ประมวลผลดึงข้อมูล ม.22 ไป ม.23
     m22_dict = next((item for item in shared.get("officers_data", []) if item["display"] == m22_officer_sel), {"fullname": m22_officer_sel, "position": ""})
 
     st.divider()
 
-    # -----------------------------------------
-    # ข้อมูลฝั่ง ม.23
-    # -----------------------------------------
     st.markdown("**► ข้อมูลฝั่ง ม.23 (บันทึกการควบคุมตัว)**")
     st.info(f"📌 วันที่/เวลา/สถานที่ถูกควบคุมตัว: ดึงจากบันทึกจับกุมอัตโนมัติ\n📌 เจ้าหน้าที่ผู้ทำการควบคุมตัว: **{m22_dict['fullname']}** ตำแหน่ง **{m22_dict['position']}** (ดึงจาก ม.22)")
     
