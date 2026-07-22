@@ -166,13 +166,13 @@ else:
     for s in final_suspects:
         with st.container(border=True):
             if is_multi:
-                st.subheader(f"🗣 ข้อมูลของ: ผู้ต้องหาที่ {s['index']} ({s['name']})")
+                st.subheader(f"🗣 ข้อมูลของ: ผู้ต้องหาที่ {s['index']} {s['name']}")
             else:
                 st.subheader(f"🗣 ข้อมูลของ: {s['name']}")
 
             # ข้อมูลญาติ
             rel_name = st.text_input("ชื่อญาติที่ประสงค์แจ้ง", placeholder="ถ้าไม่มีให้ปล่อยว่างไว้", key=f"rel_{s['index']}")
-            relative_name_final = rel_name if rel_name.strip() else "............................................................................"
+            relative_name_final = rel_name if rel_name.strip() else "............................................................................ ผู้ซึ่งตนไว้วางใจทราบถึงการจับกุมด้วยแล้ว"
             
             # ข้อมูลการให้ถ้อยคำ
             confession = st.radio("การให้ถ้อยคำในชั้นจับกุม", ["รับสารภาพตลอดข้อกล่าวหา", "ปฏิเสธตลอดข้อกล่าวหา"], key=f"conf_{s['index']}")
@@ -181,7 +181,7 @@ else:
             # --- สร้างข้อความ Dynamic เตรียมส่งให้ Word ---
             s['display_index'] = f"{s['index']}. " if is_multi else ""
             s['charge_text'] = f"ผู้ต้องหาที่ {s['index']} ซึ่งต้องหาว่ากระทำความผิดฐาน {s['charge']}" if is_multi else f"ซึ่งต้องหาว่ากระทำความผิดฐาน {s['charge']}"
-            s['relative_text'] = f"ผู้ต้องหาที่ {s['index']} ({s['name']}) แจ้งให้: {relative_name_final}" if is_multi else f" : {relative_name_final}"
+            s['relative_text'] = f"ผู้ต้องหาที่ {s['index']} {s['name']} แจ้งให้: {relative_name_final}" if is_multi else f" : {relative_name_final}"
             s['statement_prefix'] = f"ผู้ต้องหาที่ {s['index']} ({s['name']}):" if is_multi else ""
             s['confession'] = confession
             s['additional_statement'] = additional_statement
