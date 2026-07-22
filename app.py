@@ -139,6 +139,7 @@ with tab_arrest:
             if name and name.lower() != "nan":
                 final_suspects.append({"index": len(final_suspects) + 1, "name": name, "age": str(row.get("อายุ", "-")).replace(".0", ""), "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", ""), "address": str(row.get("ที่อยู่", "-")), "charge": str(row.get("ฐานความผิด", "-"))})
     else:
+        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `ชื่อ-นามสกุล` | `อายุ` | `เลขประจำตัวประชาชน` | `ที่อยู่` | `ฐานความผิด`")
         uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของผู้ต้องหา", type=["xlsx"])
         if uploaded_file:
             df = pd.read_excel(uploaded_file, dtype=str)
@@ -162,20 +163,33 @@ with tab_arrest:
     st.header("ส่วนที่ 4: รายการสิ่งของตรวจยึด")
     current_suspect_names = [s["name"] for s in final_suspects] if final_suspects else []
     seized_owner_opts = current_suspect_names + ["อื่นๆ"]
-
-    config = {
-        "ยึดจากใคร": st.column_config.SelectboxColumn("ยึดจากใคร", options=seized_owner_opts, required=False)
-    }
     
-    st.caption("กรอกรายการสิ่งของตรวจยึด หากเลือก 'ยึดจากใคร' เป็น 'อื่นๆ' ให้ระบุชื่อในช่องถัดไป")
-    edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
-    st.session_state.seized_df = edited_seized
+    seized_mode = st.radio("รูปแบบการเพิ่มสิ่งของตรวจยึด", ["กรอกผ่านตารางในเว็บ", "อัปโหลดไฟล์ Excel"], horizontal=True)
+
+    if seized_mode == "กรอกผ่านตารางในเว็บ":
+        config = {
+            "ยึดจากใคร": st.column_config.SelectboxColumn("ยึดจากใคร", options=seized_owner_opts, required=False)
+        }
+        st.caption("กรอกรายการสิ่งของตรวจยึด หากเลือก 'ยึดจากใคร' เป็น 'อื่นๆ' ให้ระบุชื่อในช่อง 'ระบุชื่อ (กรณีอื่นๆ)'")
+        edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
+        st.session_state.seized_df = edited_seized
+        seized_data_to_process = edited_seized
+    else:
+        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `รายการสิ่งของ` | `จำนวน` | `ประเภท` | `ยึดจากใคร` | `ระบุชื่อ (กรณีอื่นๆ)` | `สถานที่ยึด`")
+        uploaded_seized_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของสิ่งของตรวจยึด", type=["xlsx"], key="seized_upload")
+        if uploaded_seized_file:
+            df_seized = pd.read_excel(uploaded_seized_file, dtype=str)
+            df_seized.columns = df_seized.columns.str.strip()
+            st.dataframe(df_seized, use_container_width=True)
+            seized_data_to_process = df_seized
+        else:
+            seized_data_to_process = pd.DataFrame()
 
     has_seized_attach = st.checkbox("ปรากฏตามเอกสารแนบท้ายบันทึกจับกุมฉบับนี้")
 
     seized_list_text = []
     item_count = 1
-    for idx, row in edited_seized.iterrows():
+    for idx, row in seized_data_to_process.iterrows():
         item = str(row.get("รายการสิ่งของ", "")).strip()
         if item and item.lower() not in ["nan", "none", ""]:
             qty = str(row.get("จำนวน", "")).strip()
@@ -184,7 +198,6 @@ with tab_arrest:
                 owner = str(row.get("ระบุชื่อ (กรณีอื่นๆ)", "")).strip()
             loc = str(row.get("สถานที่ยึด", "")).strip()
             
-            # 1. โทรศัพท์มือถือ จำนวน 1 เครื่อง อยู่ในความครอบครองของ นาย A บริเวณห้องพัก
             txt = f"{item_count}. {item} จำนวน {qty} อยู่ในความครอบครองของ {owner} บริเวณ{loc}"
             seized_list_text.append(txt)
             item_count += 1
@@ -275,9 +288,6 @@ with tab_m22_23:
     st.markdown("**► ข้อมูลฝั่ง ม.23 (บันทึกการควบคุมตัว)**")
     st.info(f"📌 วันที่/เวลา/สถานที่ถูกควบคุมตัว: ดึงจากบันทึกจับกุมอัตโนมัติ")
     
-    # ------------------------------------------------------------------
-    # เปลี่ยนเจ้าหน้าที่ควบคุมตัว (ม.23) ให้เลือกจากชุดจับกุม
-    # ------------------------------------------------------------------
     st.markdown("**เจ้าหน้าที่ผู้ทำการควบคุมตัว (ม.23):**")
     ctrl_sel = st.selectbox("เลือกเจ้าหน้าที่ผู้ควบคุมตัว", dropdown_opts, key="m23_ctrl_s")
     if ctrl_sel == "อื่นๆ (กรอกเพิ่มเติม)":
