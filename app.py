@@ -94,7 +94,6 @@ with tab_arrest:
             if df_key not in st.session_state:
                 st.session_state[df_key] = pd.DataFrame([default_officer_row]) if i==0 else pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
             
-            # --- เพิ่มระบบอัปโหลดรายชื่อเจ้าหน้าที่ Excel ---
             off_mode = st.radio(f"รูปแบบการเพิ่มรายชื่อเจ้าหน้าที่ (หน่วยที่ {i+1})", ["กรอกผ่านตารางในเว็บ", "อัปโหลดไฟล์ Excel"], horizontal=True, key=f"off_mode_{i}")
             
             if off_mode == "กรอกผ่านตารางในเว็บ":
@@ -164,7 +163,15 @@ with tab_arrest:
     final_suspects = []
 
     if suspect_mode == "กรอกผ่านตารางในเว็บ":
-        edited_suspects = st.data_editor(st.session_state.suspect_df, num_rows="dynamic", key="suspect_editor", use_container_width=True)
+        # กำหนด Column Config เน้นช่องอายุ
+        suspect_column_config = {
+            "ชื่อ-นามสกุล": st.column_config.TextColumn("ชื่อ-นามสกุล"),
+            "อายุ": st.column_config.TextColumn("อายุ (ปี)", help="ระบุอายุผู้ต้องหาเป็นตัวเลข"),
+            "เลขประจำตัวประชาชน": st.column_config.TextColumn("เลขประจำตัวประชาชน"),
+            "ที่อยู่": st.column_config.TextColumn("ที่อยู่"),
+            "ฐานความผิด": st.column_config.TextColumn("ฐานความผิด")
+        }
+        edited_suspects = st.data_editor(st.session_state.suspect_df, column_config=suspect_column_config, num_rows="dynamic", key="suspect_editor", use_container_width=True)
         for idx, row in edited_suspects.iterrows():
             name = str(row.get("ชื่อ-นามสกุล", "")).strip()
             if name and name.lower() != "nan":
