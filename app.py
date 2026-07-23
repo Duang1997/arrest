@@ -94,25 +94,19 @@ with tab_arrest:
             if df_key not in st.session_state:
                 st.session_state[df_key] = pd.DataFrame([default_officer_row]) if i==0 else pd.DataFrame([{"ยศ": "พ.ต.ท.", "ชื่อ-นามสกุล": "", "ตำแหน่ง": "สว.กก.๓ บก.ป."}])
             
-            off_mode = st.radio(f"รูปแบบการเพิ่มรายชื่อเจ้าหน้าที่ (หน่วยที่ {i+1})", ["กรอกผ่านตารางในเว็บ", "อัปโหลดไฟล์ Excel"], horizontal=True, key=f"off_mode_{i}")
-            
-            if off_mode == "กรอกผ่านตารางในเว็บ":
-                edited_officers = st.data_editor(st.session_state[df_key], num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
-                valid_officers = edited_officers[edited_officers["ชื่อ-นามสกุล"].astype(str).str.strip() != ""]
-            else:
-                st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `ยศ` | `ชื่อ-นามสกุล` | `ตำแหน่ง`")
-                uploaded_off = st.file_uploader(f"อัปโหลดไฟล์ Excel (.xlsx) รายชื่อเจ้าหน้าที่หน่วยที่ {i+1}", type=["xlsx"], key=f"off_up_{i}")
-                if uploaded_off:
-                    df_off = pd.read_excel(uploaded_off, dtype=str)
+            # --- อัปโหลดและแก้ไขข้อมูลเจ้าหน้าที่ ---
+            st.caption("💡 พิมพ์ลงในตารางโดยตรง หรืออัปโหลดไฟล์ Excel (ยศ | ชื่อ-นามสกุล | ตำแหน่ง) เพื่อดึงข้อมูลมาแก้ไข")
+            off_file = st.file_uploader(f"อัปโหลดไฟล์ Excel เจ้าหน้าที่หน่วยที่ {i+1}", type=["xlsx"], key=f"off_file_{i}")
+            if off_file is not None:
+                if st.session_state.get(f'last_off_file_{i}') != off_file.file_id:
+                    df_off = pd.read_excel(off_file, dtype=str)
                     df_off.columns = df_off.columns.str.strip()
-                    st.dataframe(df_off, use_container_width=True)
-                    if "ชื่อ-นามสกุล" in df_off.columns:
-                        valid_officers = df_off[df_off["ชื่อ-นามสกุล"].notna() & (df_off["ชื่อ-นามสกุล"].astype(str).str.strip() != "") & (df_off["ชื่อ-นามสกุล"].astype(str).str.lower() != "nan")]
-                    else:
-                        valid_officers = pd.DataFrame(columns=["ยศ", "ชื่อ-นามสกุล", "ตำแหน่ง"])
-                        st.error("⚠️ ไม่พบคอลัมน์ 'ชื่อ-นามสกุล' ในไฟล์ Excel")
-                else:
-                    valid_officers = pd.DataFrame(columns=["ยศ", "ชื่อ-นามสกุล", "ตำแหน่ง"])
+                    st.session_state[df_key] = df_off
+                    st.session_state[f'last_off_file_{i}'] = off_file.file_id
+            
+            edited_officers = st.data_editor(st.session_state[df_key], num_rows="dynamic", key=f"editor_{i}", use_container_width=True)
+            
+            valid_officers = edited_officers[edited_officers["ชื่อ-นามสกุล"].astype(str).str.strip() != ""]
             
             officers_list = []
             for _, r in valid_officers.iterrows():
@@ -141,7 +135,7 @@ with tab_arrest:
             units_data.append({
                 "unit_name": unit_name, 
                 "commanders_text": commanders_text, 
-                "arresting_officers_text": f"เจ้าหน้าที่ตำรวจ (หน่วยงาน {unit_name}) ประกอบด้วย " + ", ".join([o["display"] for o in officers_list]), 
+                "arresting_officers_text": f"เจ้าหน้าที่ตำรวจ หน่วยงาน {unit_name} ประกอบด้วย " + ", ".join([o["display"] for o in officers_list]), 
                 "signature_rows": signature_rows
             })
     st.button("➕ เพิ่มหน่วยจับกุมอื่น", on_click=add_unit)
@@ -159,42 +153,48 @@ with tab_arrest:
                 warrant_details = f"ศาล{w['ศาลที่ออกหมาย']} ที่ {w['เลขที่หมาย']} ลงวันที่ {w['ลงวันที่']}"
         if w_list: warrant_text = " ".join(w_list) + "\n"
 
-    suspect_mode = st.radio("รูปแบบการเพิ่มผู้ถูกจับกุม", ["กรอกผ่านตารางในเว็บ", "อัปโหลดไฟล์ Excel"], horizontal=True)
-    final_suspects = []
-
-    if suspect_mode == "กรอกผ่านตารางในเว็บ":
-        # กำหนด Column Config เน้นช่องอายุ
-        suspect_column_config = {
-            "ชื่อ-นามสกุล": st.column_config.TextColumn("ชื่อ-นามสกุล"),
-            "อายุ": st.column_config.TextColumn("อายุ (ปี)", help="ระบุอายุผู้ต้องหาเป็นตัวเลข"),
-            "เลขประจำตัวประชาชน": st.column_config.TextColumn("เลขประจำตัวประชาชน"),
-            "ที่อยู่": st.column_config.TextColumn("ที่อยู่"),
-            "ฐานความผิด": st.column_config.TextColumn("ฐานความผิด")
-        }
-        edited_suspects = st.data_editor(st.session_state.suspect_df, column_config=suspect_column_config, num_rows="dynamic", key="suspect_editor", use_container_width=True)
-        for idx, row in edited_suspects.iterrows():
-            name = str(row.get("ชื่อ-นามสกุล", "")).strip()
-            if name and name.lower() != "nan":
-                final_suspects.append({"index": len(final_suspects) + 1, "name": name, "age": str(row.get("อายุ", "-")).replace(".0", ""), "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", ""), "address": str(row.get("ที่อยู่", "-")), "charge": str(row.get("ฐานความผิด", "-"))})
-    else:
-        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `ชื่อ-นามสกุล` | `อายุ` | `เลขประจำตัวประชาชน` (หรือ `เลขบัตรประจำตัวประชาชน`) | `ที่อยู่` | `ฐานความผิด`")
-        uploaded_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของผู้ต้องหา", type=["xlsx"])
-        if uploaded_file:
-            df = pd.read_excel(uploaded_file, dtype=str)
+    # --- อัปโหลดและแก้ไขข้อมูลผู้ต้องหา ---
+    st.caption("💡 พิมพ์ลงในตารางโดยตรง หรืออัปโหลดไฟล์ Excel (ชื่อ-นามสกุล | อายุ | เลขประจำตัวประชาชน | ที่อยู่ | ฐานความผิด) เพื่อดึงข้อมูลมาแก้ไข")
+    suspect_file = st.file_uploader("อัปโหลดไฟล์ Excel ของผู้ต้องหา", type=["xlsx"], key="suspect_file")
+    if suspect_file is not None:
+        if st.session_state.get('last_suspect_file') != suspect_file.file_id:
+            df = pd.read_excel(suspect_file, dtype=str)
             df.columns = df.columns.str.strip()
-            st.dataframe(df, use_container_width=True)
-            for idx, row in df.iterrows():
-                name = str(row.get("ชื่อ-นามสกุล", "")).strip()
-                if name and name.lower() != "nan" and name.lower() != "none":
-                    id_raw = row.get("เลขบัตรประจำตัวประชาชน", row.get("เลขประจำตัวประชาชน", "-"))
-                    final_suspects.append({
-                        "index": len(final_suspects) + 1, 
-                        "name": name, 
-                        "age": str(row.get("อายุ", "-")).replace(".0", "").strip(), 
-                        "id_card": str(id_raw).replace(".0", "").strip(), 
-                        "address": str(row.get("ที่อยู่", "-")).strip(), 
-                        "charge": str(row.get("ฐานความผิด", "-")).strip()
-                    })
+            
+            # แปลงชื่อคอลัมน์ให้อยู่ในรูปแบบมาตรฐานเพื่อนำเข้าตาราง
+            if "เลขบัตรประจำตัวประชาชน" in df.columns:
+                df = df.rename(columns={"เลขบัตรประจำตัวประชาชน": "เลขประจำตัวประชาชน"})
+                
+            # เติมคอลัมน์ที่ขาดหายไป
+            for col in ["ชื่อ-นามสกุล", "อายุ", "เลขประจำตัวประชาชน", "ที่อยู่", "ฐานความผิด"]:
+                if col not in df.columns:
+                    df[col] = ""
+                    
+            st.session_state.suspect_df = df[["ชื่อ-นามสกุล", "อายุ", "เลขประจำตัวประชาชน", "ที่อยู่", "ฐานความผิด"]]
+            st.session_state['last_suspect_file'] = suspect_file.file_id
+
+    suspect_column_config = {
+        "ชื่อ-นามสกุล": st.column_config.TextColumn("ชื่อ-นามสกุล"),
+        "อายุ": st.column_config.TextColumn("อายุ (ปี)"),
+        "เลขประจำตัวประชาชน": st.column_config.TextColumn("เลขประจำตัวประชาชน"),
+        "ที่อยู่": st.column_config.TextColumn("ที่อยู่"),
+        "ฐานความผิด": st.column_config.TextColumn("ฐานความผิด")
+    }
+    
+    edited_suspects = st.data_editor(st.session_state.suspect_df, column_config=suspect_column_config, num_rows="dynamic", key="suspect_editor", use_container_width=True)
+    
+    final_suspects = []
+    for idx, row in edited_suspects.iterrows():
+        name = str(row.get("ชื่อ-นามสกุล", "")).strip()
+        if name and name.lower() not in ["nan", "none", ""]:
+            final_suspects.append({
+                "index": len(final_suspects) + 1, 
+                "name": name, 
+                "age": str(row.get("อายุ", "-")).replace(".0", "").strip(), 
+                "id_card": str(row.get("เลขประจำตัวประชาชน", "-")).replace(".0", "").strip(), 
+                "address": str(row.get("ที่อยู่", "-")).strip(), 
+                "charge": str(row.get("ฐานความผิด", "-")).strip()
+            })
 
     arrest_circumstances = st.text_area("พฤติการณ์และรายละเอียดเกี่ยวกับเหตุแห่งการจับ", height=150, placeholder="ระบุรายละเอียดพฤติการณ์จับกุม...")
     st.divider()
@@ -203,31 +203,27 @@ with tab_arrest:
     current_suspect_names = [s["name"] for s in final_suspects] if final_suspects else []
     seized_owner_opts = current_suspect_names + ["อื่นๆ"]
     
-    seized_mode = st.radio("รูปแบบการเพิ่มสิ่งของตรวจยึด", ["กรอกผ่านตารางในเว็บ", "อัปโหลดไฟล์ Excel"], horizontal=True)
-
-    if seized_mode == "กรอกผ่านตารางในเว็บ":
-        config = {
-            "ยึดจากใคร": st.column_config.SelectboxColumn("ยึดจากใคร", options=seized_owner_opts, required=False)
-        }
-        st.caption("กรอกรายการสิ่งของตรวจยึด หากเลือก 'ยึดจากใคร' เป็น 'อื่นๆ' ให้ระบุชื่อในช่อง 'ระบุชื่อ (กรณีอื่นๆ)'")
-        edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
-        seized_data_to_process = edited_seized
-    else:
-        st.info("💡 **รูปแบบหัวตาราง Excel ที่ระบบต้องการ:** `รายการสิ่งของ` | `จำนวน` | `ประเภท` | `ยึดจากใคร` | `ระบุชื่อ (กรณีอื่นๆ)` | `สถานที่ยึด`")
-        uploaded_seized_file = st.file_uploader("อัปโหลดไฟล์ Excel (.xlsx) ของสิ่งของตรวจยึด", type=["xlsx"], key="seized_upload")
-        if uploaded_seized_file:
-            df_seized = pd.read_excel(uploaded_seized_file, dtype=str)
+    # --- อัปโหลดและแก้ไขข้อมูลของกลาง ---
+    st.caption("💡 พิมพ์ลงในตารางโดยตรง หรืออัปโหลดไฟล์ Excel (รายการสิ่งของ | จำนวน | ประเภท | ยึดจากใคร | ระบุชื่อ | สถานที่ยึด) เพื่อดึงข้อมูลมาแก้ไข")
+    seized_file = st.file_uploader("อัปโหลดไฟล์ Excel ของสิ่งของตรวจยึด", type=["xlsx"], key="seized_file")
+    if seized_file is not None:
+        if st.session_state.get('last_seized_file') != seized_file.file_id:
+            df_seized = pd.read_excel(seized_file, dtype=str)
             df_seized.columns = df_seized.columns.str.strip()
-            st.dataframe(df_seized, use_container_width=True)
-            seized_data_to_process = df_seized
-        else:
-            seized_data_to_process = pd.DataFrame()
+            st.session_state.seized_df = df_seized
+            st.session_state['last_seized_file'] = seized_file.file_id
+
+    config = {
+        "ยึดจากใคร": st.column_config.SelectboxColumn("ยึดจากใคร", options=seized_owner_opts, required=False)
+    }
+    
+    edited_seized = st.data_editor(st.session_state.seized_df, column_config=config, num_rows="dynamic", key="seized_editor", use_container_width=True)
 
     has_seized_attach = st.checkbox("ปรากฏตามเอกสารแนบท้ายบันทึกจับกุมฉบับนี้")
 
     seized_list_text = []
     item_count = 1
-    for idx, row in seized_data_to_process.iterrows():
+    for idx, row in edited_seized.iterrows():
         item = str(row.get("รายการสิ่งของ", "")).strip()
         if item and item.lower() not in ["nan", "none", ""]:
             qty = str(row.get("จำนวน", "")).strip()
